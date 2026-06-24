@@ -4,7 +4,7 @@
 
 - Python 3.8 or higher
 - pip (Python package manager)
-- A device on the same WiFi network for student testing ( using phone)
+- A device on the same WiFi network for student testing using phone
 
 ---
 
