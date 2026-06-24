@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – Teacher Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a href="{{ url_for('teacher.dashboard') }}" class="brand">Acad<span>Scan</span></a>
+    <div class="nav-links">
+      <span class="badge-role badge-teacher">Teacher</span>
+      <span class="text-muted" style="font-size:.85rem;">{{ current_user.username }}</span>
+      <a href="{{ url_for('teacher.generate_qr') }}" class="nav-link">Generate QR</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link danger">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container" style="flex:1;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="page-header">
+    <div class="flex-between">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Click any session to reopen its QR code</p>
+      </div>
+      <a href="{{ url_for('teacher.generate_qr') }}" class="btn btn-primary">+ New Session</a>
+    </div>
+  </div>
+
+  {% if session_data %}
+  <div style="display:grid; gap:14px;">
+    {% for item in session_data %}
+    <a href="{{ url_for('teacher.session_detail', session_id=item.session.id) }}"
+       style="text-decoration:none; display:block;">
+      <div class="card-sm" style="transition: border-color .2s, box-shadow .2s; cursor:pointer;"
+           onmouseover="this.style.borderColor='var(--accent)'; this.style.boxShadow='var(--glow)'"
+           onmouseout="this.style.borderColor=''; this.style.boxShadow=''">
+        <div class="flex-between mb-2">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <!-- Active/expired indicator dot -->
+            <span style="width:10px;height:10px;border-radius:50%;flex-shrink:0;
+                         background:{{ 'var(--success)' if item.is_active else 'var(--muted)' }};
+                         box-shadow:{{ '0 0 8px var(--success)' if item.is_active else 'none' }};">
+            </span>
+            <strong style="font-family:var(--font-display); font-size:1rem; color:var(--text);">
+              {{ item.session.subject }}
+            </strong>
+            <span class="text-muted" style="font-size:.82rem;">Session #{{ item.session.id }}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="stat-chip {{ 'green' if item.count > 0 else '' }}">
+              {{ item.count }} present
+            </span>
+            {% if item.is_active %}
+            <span class="stat-chip blue" style="font-size:.7rem;">
+              ⏱ {{ item.remaining // 60 }}m {{ item.remaining % 60 }}s left
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex gap-2" style="flex-wrap:wrap; align-items:center;">
+          <span class="text-muted" style="font-size:.82rem;">
+            🕐 {{ item.session.created_at.strftime('%d %b %Y, %I:%M %p') }}
+          </span>
+          <span class="tag-mono">{{ item.session.teacher_ip }}</span>
+          <span style="margin-left:auto; color:var(--accent); font-size:.82rem;
+                       font-family:var(--font-display); font-weight:600;">
+            {% if item.is_active %}📷 Reopen QR →{% else %}👁 View Attendance →{% endif %}
+          </span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="card text-center" style="padding:48px;">
+    <p style="font-size:2.5rem; margin-bottom:12px;">📋</p>
+    <h3>No sessions yet</h3>
+    <p class="text-muted mt-1">Generate your first QR to start taking attendance.</p>
+    <a href="{{ url_for('teacher.generate_qr') }}" class="btn btn-primary mt-3">Generate QR</a>
+  </div>
+  {% endif %}
+
+</main>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

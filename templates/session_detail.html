@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – Session #{{ sess.id }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .expiry-bar-bg {
+      background: var(--surface2); border-radius: 20px;
+      height: 10px; overflow: hidden; margin-top: 10px;
+    }
+    #expiry-bar {
+      height: 100%; width: 100%; background: var(--success);
+      border-radius: 20px; transition: width 1s linear, background 1s;
+    }
+    .qr-large img {
+      max-width: 260px; border: 8px solid white;
+      border-radius: 12px; box-shadow: 0 0 40px rgba(79,140,255,.2);
+    }
+    .student-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .student-row:last-child { border-bottom: none; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--accent); display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: .9rem;
+      color: white; font-family: var(--font-display); flex-shrink: 0;
+    }
+  </style>
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a href="{{ url_for('teacher.dashboard') }}" class="brand">Acad<span>Scan</span></a>
+    <div class="nav-links">
+      <span class="badge-role badge-teacher">Teacher</span>
+      <a href="{{ url_for('teacher.dashboard') }}" class="nav-link">← Dashboard</a>
+      <a href="{{ url_for('teacher.generate_qr') }}" class="nav-link">New Session</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link danger">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container" style="flex:1;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="page-header">
+    <div class="flex-between">
+      <div>
+        <h1>{{ sess.subject }}</h1>
+        <p>Session #{{ sess.id }} · {{ sess.created_at.strftime('%d %b %Y, %I:%M %p') }}</p>
+      </div>
+      {% if is_active %}
+      <span class="stat-chip green" style="font-size:.85rem;">● Active</span>
+      {% else %}
+      <span class="stat-chip" style="font-size:.85rem;">✗ Expired</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; align-items:start;">
+
+    <!-- ── Left: QR + Timer ── -->
+    <div class="card">
+
+      {% if is_active %}
+      <div class="alert alert-info" style="font-size:.82rem; margin-bottom:18px;">
+        📷 Show this QR to students. They scan it with their phone camera.
+      </div>
+      {% else %}
+      <div class="alert alert-danger" style="font-size:.82rem; margin-bottom:18px;">
+        ⛔ This QR has expired. Students can no longer mark attendance.
+        <a href="{{ url_for('teacher.generate_qr') }}" style="color:inherit; font-weight:600;">
+          Generate a new session →
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- QR Code Image -->
+      <div class="qr-large text-center" style="margin-bottom:20px;">
+        <img src="{{ url_for('static', filename='images/' + qr_image) }}"
+             alt="QR Code"
+             style="opacity: {{ '1' if is_active else '0.35' }}; filter: {{ 'none' if is_active else 'grayscale(1)' }};">
+        <p class="text-muted mt-2" style="font-size:.8rem;">
+          Session #{{ sess.id }} · {{ sess.subject }}
+        </p>
+      </div>
+
+      <!-- Countdown -->
+      {% if is_active %}
+      <div style="text-align:center;">
+        <p class="text-muted" style="font-size:.8rem; margin-bottom:4px;">Expires in</p>
+        <p style="font-family:var(--font-display); font-size:2.2rem; color:var(--success);">
+          <span id="qr-countdown" data-seconds="{{ remaining_secs }}">
+            {{ remaining_secs // 60 }}:{{ '%02d' % (remaining_secs % 60) }}
+          </span>
+        </p>
+        <div class="expiry-bar-bg">
+          <div id="expiry-bar"
+               style="width: {{ (remaining_secs / expiry_secs * 100)|round(1) }}%">
+          </div>
+        </div>
+      </div>
+      <div id="expired-notice" class="alert alert-danger mt-2" style="display:none;">
+        ⛔ QR expired. <a href="{{ url_for('teacher.generate_qr') }}">Generate a new session</a>
+      </div>
+      {% endif %}
+
+      <div class="divider"></div>
+
+      <!-- Session metadata -->
+      <div style="font-size:.88rem; line-height:2.2;">
+        <div class="flex-between">
+          <span class="text-muted">Session ID</span>
+          <span class="tag-mono">#{{ sess.id }}</span>
+        </div>
+        <div class="flex-between">
+          <span class="text-muted">Teacher IP</span>
+          <span class="tag-mono">{{ sess.teacher_ip }}</span>
+        </div>
+        <div class="flex-between">
+          <span class="text-muted">Present</span>
+          <span class="stat-chip green">{{ attendance_data|length }} student(s)</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- QR URL for sharing -->
+      <label class="form-label">QR URL (for manual sharing)</label>
+      <input id="qr-url-input" type="text" class="form-control" readonly
+             value="{{ qr_url }}" style="font-size:.72rem; font-family:monospace;">
+      <button id="copy-btn" class="btn btn-secondary btn-full mt-2" style="font-size:.82rem;">
+        📋 Copy Link
+      </button>
+
+    </div>
+
+   <!-- ── Right: Attendance List ── -->
+<div class="card">
+
+  <!-- Header with Export button -->
+  <div class="flex-between" style="margin-bottom:18px;">
+    <h3 style="margin:0;">
+      Attendance
+      <span class="stat-chip green" style="font-size:.75rem;">
+        {{ attendance_data|length }} present
+      </span>
+    </h3>
+    <!-- Export this session as CSV -->
+    <a href="{{ url_for('teacher.export_session_csv', session_id=sess.id) }}"
+       class="btn btn-secondary"
+       style="font-size:.8rem; padding:8px 14px;">
+      ⬇️ Export CSV
+    </a>
+  </div>
+
+  {% if attendance_data %}
+    {% for item in attendance_data %}
+    <div class="student-row">
+      <div class="avatar">{{ item.student.username[0].upper() if item.student else '?' }}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600; font-size:.92rem;">
+          {{ item.student.username if item.student else 'Unknown' }}
+        </div>
+        <div class="text-muted" style="font-size:.75rem;">
+          {{ item.time.strftime('%I:%M:%S %p') }} · {{ item.ip }}
+        </div>
+      </div>
+      <span style="color:var(--success); font-size:1.1rem;">✓</span>
+    </div>
+    {% endfor %}
+
+    <!-- Auto-refresh while session is active so list updates live -->
+    {% if is_active %}
+    <p class="text-muted mt-2" style="font-size:.75rem; text-align:center;">
+      🔄 Page auto-refreshes every 15s while session is active
+    </p>
+    {% endif %}
+
+  {% else %}
+    <div style="text-align:center; padding:32px 0;">
+      <p style="font-size:1.8rem; margin-bottom:8px;">⏳</p>
+      <p class="text-muted">Waiting for students to scan…</p>
+    </div>
+  {% endif %}
+
+</div>
+
+  </div>
+</main>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+  // Copy QR URL
+  const copyBtn = document.getElementById('copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const val = document.getElementById('qr-url-input').value;
+      navigator.clipboard.writeText(val).then(() => {
+        copyBtn.textContent = '✅ Copied!';
+        setTimeout(() => copyBtn.textContent = '📋 Copy Link', 2000);
+      });
+    });
+  }
+
+  // Auto-refresh every 15s while session is active (so attendance list updates)
+  {% if is_active %}
+  setTimeout(() => location.reload(), 15000);
+  {% endif %}
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – New Session</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a href="{{ url_for('teacher.dashboard') }}" class="brand">Acad<span>Scan</span></a>
+    <div class="nav-links">
+      <span class="badge-role badge-teacher">Teacher</span>
+      <a href="{{ url_for('teacher.dashboard') }}" class="nav-link">Dashboard</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link danger">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container" style="flex:1; max-width:520px;">
+  <div class="page-header">
+    <h1>New Session</h1>
+    <p>Create an attendance session — QR is generated instantly</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card">
+    <form method="POST" action="{{ url_for('teacher.generate_qr') }}">
+      <div class="form-group">
+        <label class="form-label">Subject / Class Name</label>
+        <input type="text" name="subject" class="form-control"
+               placeholder="e.g. DBMS, Networks, OS" autofocus required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg">⚡ Generate QR Code</button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="alert alert-info" style="font-size:.84rem; margin:0;">
+      💡 After generating, you'll be taken to the QR display page.
+      You can <strong>reopen any session's QR anytime</strong> from the dashboard.
+    </div>
+  </div>
+</main>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

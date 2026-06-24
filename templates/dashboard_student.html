@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – Student Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a href="{{ url_for('student.dashboard') }}" class="brand">Acad<span>Scan</span></a>
+    <div class="nav-links">
+      <span class="badge-role badge-student">Student</span>
+      <span class="text-muted" style="font-size:.85rem;">{{ current_user.username }}</span>
+      <a href="{{ url_for('attendance.scan_qr') }}" class="nav-link">Scan QR</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link danger">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container" style="flex:1;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="page-header">
+    <div class="flex-between">
+      <div>
+        <h1>My Attendance</h1>
+        <p>Your attendance history across all sessions</p>
+      </div>
+      <a href="{{ url_for('attendance.scan_qr') }}" class="btn btn-success">📷 Scan QR</a>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:12px; margin-bottom:24px;">
+    <span class="stat-chip green">✅ {{ history|length }} attended</span>
+  </div>
+
+  {% if history %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Subject</th><th>Session</th><th>Date &amp; Time</th><th>Your IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in history %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ item.session.subject if item.session else '—' }}</td>
+          <td><span class="tag-mono">#{{ item.session.id if item.session else '?' }}</span></td>
+          <td>{{ item.marked_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+          <td><span class="tag-mono">{{ item.ip }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card text-center" style="padding:48px;">
+    <p style="font-size:2rem; margin-bottom:12px;">🎓</p>
+    <h3>No attendance yet</h3>
+    <p class="text-muted mt-1">Scan your teacher's QR code to mark attendance.</p>
+    <a href="{{ url_for('attendance.scan_qr') }}" class="btn btn-success mt-3">📷 Scan QR Code</a>
+  </div>
+  {% endif %}
+
+</main>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

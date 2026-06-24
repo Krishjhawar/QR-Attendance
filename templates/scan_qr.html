@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – Mark Attendance</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .opt-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .opt-card:hover { border-color: var(--accent); }
+    .opt-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 20px; cursor: pointer; user-select: none;
+    }
+    .opt-icon { font-size: 1.6rem; }
+    .opt-title { font-family: var(--font-display); font-size: .95rem; font-weight: 600; }
+    .opt-badge {
+      font-size: .65rem; font-weight: 700; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 20px; letter-spacing: .06em; margin-left: 6px;
+    }
+    .badge-rec  { background: rgba(56,232,122,.15); color: var(--success); }
+    .badge-opt  { background: rgba(79,140,255,.12);  color: var(--accent);  }
+    .badge-fall { background: rgba(122,132,153,.12); color: var(--muted);   }
+    .opt-body   { padding: 0 20px 18px; display: none; }
+    .opt-body.open { display: block; }
+    .arr { margin-left: auto; color: var(--muted); font-size: 1.1rem; transition: transform .2s; }
+    .arr.open { transform: rotate(90deg); }
+
+    .step { display:flex; gap:12px; align-items:flex-start; padding:10px 0;
+            border-bottom:1px solid var(--border); }
+    .step:last-child { border-bottom:none; }
+    .snum { width:26px;height:26px;min-width:26px;background:var(--accent);color:#fff;
+            border-radius:50%;display:flex;align-items:center;justify-content:center;
+            font-family:var(--font-display);font-weight:700;font-size:.78rem; }
+  </style>
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a href="{{ url_for('student.dashboard') }}" class="brand">Acad<span>Scan</span></a>
+    <div class="nav-links">
+      <span class="badge-role badge-student">Student</span>
+      <a href="{{ url_for('student.dashboard') }}" class="nav-link">Dashboard</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link danger">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container" style="flex:1; max-width:560px;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="page-header">
+    <h1>Mark Attendance</h1>
+    <p>Choose a scanning method below</p>
+  </div>
+
+  <!-- ══ OPTION 1: Phone Camera ══ -->
+  <div class="opt-card">
+    <div class="opt-header" onclick="toggle('o1')">
+      <span class="opt-icon">📷</span>
+      <div>
+        <span class="opt-title">Phone Camera / Google Lens</span>
+        <span class="opt-badge badge-rec">Recommended</span>
+      </div>
+      <span class="arr open" id="a1">›</span>
+    </div>
+    <div class="opt-body open" id="o1">
+      <div class="step">
+        <div class="snum">1</div>
+        <div><strong>Open Camera or Google Lens</strong><br>
+          <span class="text-muted" style="font-size:.83rem;">Default camera app works on most phones</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="snum">2</div>
+        <div><strong>Point at teacher's QR code</strong><br>
+          <span class="text-muted" style="font-size:.83rem;">Hold steady — a link pops up at the top</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="snum">3</div>
+        <div><strong>Tap the link</strong><br>
+          <span class="text-muted" style="font-size:.83rem;">Browser opens and attendance is marked automatically ✅</span>
+        </div>
+      </div>
+      <p class="text-muted mt-2" style="font-size:.78rem;">
+        ⚠️ Must be on same WiFi / hotspot as the teacher
+      </p>
+    </div>
+  </div>
+
+  <!-- ══ OPTION 2: Browser Camera ══ -->
+  <div class="opt-card">
+    <div class="opt-header" onclick="toggle('o2')">
+      <span class="opt-icon">🌐</span>
+      <div>
+        <span class="opt-title">Scan Using This Website</span>
+        <span class="opt-badge badge-opt">Option 2</span>
+      </div>
+      <span class="arr" id="a2">›</span>
+    </div>
+    <div class="opt-body" id="o2">
+      <p class="text-muted" style="font-size:.85rem; margin-bottom:14px;">
+        Uses your device camera directly in the browser. No app needed.
+        Allow camera access when prompted.
+      </p>
+      <a href="{{ url_for('attendance.scan_camera') }}" class="btn btn-primary btn-full">
+        📸 Open Camera Scanner
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ OPTION 3: Manual ══ -->
+  <div class="opt-card">
+    <div class="opt-header" onclick="toggle('o3')">
+      <span class="opt-icon">⌨️</span>
+      <div>
+        <span class="opt-title">Enter Manually</span>
+        <span class="opt-badge badge-fall">Fallback</span>
+      </div>
+      <span class="arr" id="a3">›</span>
+    </div>
+    <div class="opt-body" id="o3">
+      <p class="text-muted" style="font-size:.85rem; margin-bottom:14px;">
+        Paste the QR URL your teacher copied, or just type the session number.
+      </p>
+      <form method="POST" action="{{ url_for('attendance.scan_qr') }}">
+        <div class="form-group">
+          <label class="form-label">QR URL or Session Number</label>
+          <input type="text" name="qr_text" class="form-control"
+                 placeholder="Paste URL  —OR—  type session number e.g. 4">
+        </div>
+        <button type="submit" class="btn btn-success btn-full">✅ Mark Attendance</button>
+      </form>
+    </div>
+  </div>
+
+</main>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+  function toggle(id) {
+    const body = document.getElementById(id);
+    const num  = id.slice(1);
+    const arr  = document.getElementById('a' + num);
+    const open = body.classList.toggle('open');
+    arr.classList.toggle('open', open);
+  }
+</script>
+</body>
+</html>

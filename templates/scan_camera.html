@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – Camera Scanner</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body { background: var(--bg); }
+    .scanner-wrap {
+      min-height: 100vh; display: grid; place-items: center; padding: 20px;
+    }
+    .scanner-card { max-width: 420px; width: 100%; }
+    #qr-reader { border-radius: var(--radius); overflow: hidden; }
+    /* Style the library's button */
+    #qr-reader__dashboard_section_csr button {
+      background: var(--accent) !important; color: #fff !important;
+      border: none !important; border-radius: var(--radius-sm) !important;
+      padding: 9px 18px !important; font-family: var(--font-display) !important;
+      font-weight: 600 !important; cursor: pointer !important;
+    }
+    /* Hide the file-upload option — we only want camera */
+    #qr-reader__dashboard_section_fsr { display: none !important; }
+    .status { padding: 12px 16px; border-radius: var(--radius-sm); margin-top: 14px;
+              font-weight: 500; font-size: .9rem; display: none; }
+    .s-scan { background: rgba(79,140,255,.1);  color: var(--accent);  display: block; }
+    .s-ok   { background: rgba(56,232,122,.1);  color: var(--success); display: block; }
+    .s-err  { background: rgba(255,79,106,.1);  color: var(--danger);  display: block; }
+  </style>
+</head>
+<body>
+<div class="scanner-wrap">
+  <div class="scanner-card">
+
+    <a href="{{ url_for('attendance.scan_qr') }}" class="brand"
+       style="display:block; margin-bottom:20px; font-family:var(--font-display);
+              font-size:1.3rem; font-weight:800; color:var(--accent); text-decoration:none;">
+      ← Acad<span style="color:var(--accent2)">Scan</span>
+    </a>
+
+    <div class="card">
+      <h2 style="margin-bottom:6px;">Camera Scanner</h2>
+      <p class="text-muted" style="font-size:.87rem; margin-bottom:18px;">
+        Allow camera access, then point at the teacher's QR code
+      </p>
+
+      <div id="qr-reader"></div>
+
+      <div id="status" class="status s-scan">🔍 Scanning… aim at the QR code</div>
+
+      <div class="divider"></div>
+      <a href="{{ url_for('attendance.scan_qr') }}" class="btn btn-secondary btn-full">
+        ← Back to Options
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const status = document.getElementById('status');
+
+  function onSuccess(text) {
+    scanner.clear().catch(() => {});  // stop scanning
+
+    status.className = 'status s-ok';
+    status.textContent = '✅ QR found! Redirecting…';
+
+    let target = null;
+
+    // Full AcadScan URL
+    if (text.includes('/attendance/mark')) {
+      target = text;
+    }
+    // Has session_id param (any format)
+    else if (text.includes('session_id=')) {
+      const sid = text.split('session_id=')[1].split('&')[0];
+      target = '/attendance/mark?session_id=' + sid;
+    }
+    // Plain integer
+    else if (/^\d+$/.test(text.trim())) {
+      target = '/attendance/mark?session_id=' + text.trim();
+    }
+
+    if (target) {
+      setTimeout(() => window.location.href = target, 600);
+    } else {
+      status.className = 'status s-err';
+      status.textContent = '❌ Not a valid AcadScan QR. Try again.';
+      // Restart scanner after 2s
+      setTimeout(() => {
+        scanner.render(onSuccess, onFail);
+        status.className = 'status s-scan';
+        status.textContent = '🔍 Scanning…';
+      }, 2000);
+    }
+  }
+
+  function onFail() { /* silent — fires constantly while searching */ }
+
+  const scanner = new Html5QrcodeScanner('qr-reader', {
+    fps: 12,
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1.0,
+    showTorchButtonIfSupported: true,   // flashlight on phones
+  }, false);
+
+  scanner.render(onSuccess, onFail);
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AcadScan – Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="login-wrapper">
+  <div class="login-card card">
+
+    <div class="login-logo">
+      <h1>Acad<span style="color:var(--accent2)">Scan</span></h1>
+      <p>Smart QR Attendance System</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if next_url %}
+    <div class="alert alert-info" style="font-size:0.85rem;">
+      📷 You scanned a QR code! Login to automatically mark your attendance.
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <!-- Carry the 'next' URL through the form so redirect works after login -->
+      <input type="hidden" name="next" value="{{ next_url }}">
+
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control"
+               placeholder="e.g. student1" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control"
+               placeholder="Enter password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg">
+        Sign In →
+      </button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="text-muted text-center" style="font-size:0.82rem; line-height:1.8;">
+      <strong style="color:var(--muted)">Demo Accounts</strong><br>
+      Teacher: <span class="tag-mono">teacher1</span> / <span class="tag-mono">teach123</span><br>
+      Student: <span class="tag-mono">student1</span> / <span class="tag-mono">stud123</span>
+    </div>
+
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
